@@ -54,10 +54,13 @@ jobs:
           - aarch64-linux
     env:
       REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Lowercase image name
+        id: image
+        run: echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -94,8 +97,8 @@ jobs:
           build-args: |
             TARGET_ARCH=${{ matrix.target_arch }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag.outputs.new_tag }}-${{ steps.arch.outputs.suffix }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ steps.arch.outputs.suffix }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ needs.tag.outputs.new_tag }}-${{ steps.arch.outputs.suffix }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:latest-${{ steps.arch.outputs.suffix }}
 
   # ──────────────────────────────────────────────
   # 3. Create a GitHub Release with useful notes
@@ -106,10 +109,13 @@ jobs:
     needs: [tag, build]
     env:
       REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Lowercase image name
+        id: image
+        run: echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -123,21 +129,21 @@ jobs:
 
             | Architecture | Pull command |
             |---|---|
-            | `x86_64-linux`  | `docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag.outputs.new_tag }}-amd64` |
-            | `aarch64-linux` | `docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag.outputs.new_tag }}-arm64` |
+            | `x86_64-linux`  | `docker pull ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ needs.tag.outputs.new_tag }}-amd64` |
+            | `aarch64-linux` | `docker pull ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ needs.tag.outputs.new_tag }}-arm64` |
 
             ### Usage
             ```bash
             # x86_64 ISO
             docker run --rm \
               -v "$(pwd)/out:/out" \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag.outputs.new_tag }}-amd64 \
+              ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ needs.tag.outputs.new_tag }}-amd64 \
               <MANAGER_IP> <SWARM_TOKEN> [TARGET_DISK]
 
             # aarch64 ISO
             docker run --rm \
               -v "$(pwd)/out:/out" \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.tag.outputs.new_tag }}-arm64 \
+              ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ needs.tag.outputs.new_tag }}-arm64 \
               <MANAGER_IP> <SWARM_TOKEN> [TARGET_DISK]
             ```
           generate_release_notes: true
