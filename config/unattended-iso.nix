@@ -4,17 +4,12 @@
     "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
   ];
 
-  # Include the configuration file on the ISO itself so the installer can copy it
-  isoImage.contents = [
-    {
-      source = ./configuration.nix;
-      target = "/configuration.nix";
-    }
-  ];
+  # Include the configuration file in the live environment's /etc
+  environment.etc."nixos-configuration-template.nix".source = ./configuration.nix;
 
   # Allow root login via SSH (in addition to key-based if provided)
   services.openssh.enable = true;
-  services.openssh.settings.PermitRootLogin = "prohibit-password";
+  services.openssh.settings.PermitRootLogin = lib.mkForce "prohibit-password";
 
   # SSH Key Injection
   users.users.root.openssh.authorizedKeys.keys = lib.mkIf ("__SSH_KEY__" != "") [
@@ -22,7 +17,7 @@
   ];
   
   # Allow empty root password for local console login (if no SSH key provided)
-  users.users.root.initialHashedPassword = lib.mkIf ("__SSH_KEY__" == "") "";
+  users.users.root.initialHashedPassword = lib.mkForce (if "__SSH_KEY__" == "" then "" else "*");
 
   systemd.services.auto-install = {
     description = "Unattended NixOS Installation";
@@ -84,7 +79,7 @@
       nixos-generate-config --root /mnt
 
       echo "==> Copying static configuration..."
-      cp /configuration.nix /mnt/etc/nixos/configuration.nix
+      cp /etc/nixos-configuration-template.nix /mnt/etc/nixos/configuration.nix
 
       # Add SSH key to the installed system if provided
       if [ -n "$SSH_KEY" ]; then
