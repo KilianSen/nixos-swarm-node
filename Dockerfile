@@ -2,24 +2,24 @@ FROM nixos/nix:latest
 
 # OpenContainer labels
 LABEL org.opencontainers.image.title="NixOS Swarm Node ISO Builder"
-LABEL org.opencontainers.image.description="Docker image for building unattended NixOS ISO for Swarm nodes"
-LABEL org.opencontainers.image.version="1.0"
+LABEL org.opencontainers.image.description="Multi-arch Docker image for building unattended NixOS ISO for Swarm nodes"
+LABEL org.opencontainers.image.version="1.2"
 LABEL org.opencontainers.image.authors="KilianSen"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.source="https://github.com/KilianSen/nixos-swarm-node/"
 
-# Configurable target architecture for the NixOS ISO
-# Supported values: x86_64-linux, aarch64-linux
-ARG TARGET_ARCH=x86_64-linux
-ENV TARGET_ARCH=${TARGET_ARCH}
+# Required to enable Flakes and Nix-command at build-time and runtime
+RUN mkdir -p /etc/nix && \
+    echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf
 
-# Install sed so our build script can parse and modify the template
+# Install gnused to ensure robust script execution
 RUN nix-env --option sandbox false -iA nixpkgs.gnused
 
-# Copy our template and build script into the container
+# Copy our configuration files and build scripts
 COPY config/unattended-iso.nix /unattended-iso.nix
 COPY config/configuration.nix /configuration.nix
 COPY build-iso.sh /build-iso.sh
+COPY flake.nix /flake.nix
 
 # Ensure the script is executable
 RUN chmod +x /build-iso.sh

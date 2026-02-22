@@ -4,21 +4,13 @@ A Docker-based tool that builds a fully automated NixOS installer ISO for Docker
 
 ---
 
-## How it works
+## Features
 
-```
-Docker container (nixos/nix)
-  └─ build-iso.sh          ← injects runtime args into the Nix template
-       └─ unattended-iso.nix  ← NixOS config with a systemd auto-install service
-            └─ configuration.nix  ← base NixOS system config (Docker, networking, …)
-```
-
-On first boot the generated ISO runs a `systemd` service that:
-1. Partitions the target disk (GPT, EFI + ext4)
-2. Formats and mounts the partitions
-3. Installs NixOS with `nixos-install`
-4. Writes Swarm credentials to `/root/swarm-secrets/`
-5. Reboots into the freshly installed system, which auto-joins the Swarm
+- **Modern Nix**: Powered by Nix Flakes and pinned to the stable `24.11` release.
+- **Truly Multi-arch**: Build `x86_64-linux` or `aarch64-linux` ISOs on any platform.
+- **Secure Access**: Inject your SSH public key during the build for immediate, secure access.
+- **Custom Partitioning**: Choose how much disk space to allocate for the NixOS partition.
+- **Robust Error Handling**: If installation fails, the installer pauses for manual debugging instead of rebooting into an empty system.
 
 ---
 
@@ -27,94 +19,71 @@ On first boot the generated ISO runs a `systemd` service that:
 | Tool | Version |
 |---|---|
 | Docker | 20.10 + |
-| QEMU / `binfmt` support | only for cross-arch builds |
-
----
-
-## Building the image locally
-
-```bash
-# Default: x86_64-linux
-docker build -t nixos-swarm-node .
-
-# Explicit architecture
-docker build --build-arg TARGET_ARCH=aarch64-linux -t nixos-swarm-node:arm64 .
-```
-
-Supported `TARGET_ARCH` values:
-
-| Value | Description |
-|---|---|
-| `x86_64-linux` | Standard 64-bit PC (default) |
-| `aarch64-linux` | ARM 64-bit (Raspberry Pi 4/5, Apple Silicon VMs, …) |
+| QEMU / `binfmt` support | required for cross-arch builds |
 
 ---
 
 ## Generating an ISO
 
+Pull the multi-arch pre-built image and run it with your Swarm credentials.
+
 ```bash
 docker run --rm \
   -v "$(pwd)/iso-output:/out" \
-  ghcr.io/kiliansen/nixos-swarm-node \
-  <MANAGER_IP> <SWARM_TOKEN> [TARGET_DISK]
+  ghcr.io/kiliansen/nixos-swarm-node:latest \
+  <MANAGER_IP> <SWARM_TOKEN> [TARGET_DISK] [ARCH] [SSH_KEY] [PART_SIZE]
 ```
+
+### Arguments
 
 | Argument | Required | Default | Description |
 |---|---|---|---|
 | `MANAGER_IP` | ✅ | — | IP of the Docker Swarm manager |
 | `SWARM_TOKEN` | ✅ | — | Worker join token (`docker swarm join-token worker -q`) |
 | `TARGET_DISK` | ❌ | `/dev/sda` | Block device to install NixOS onto |
+| `ARCH` | ❌ | *host* | Target arch (`x86_64-linux` or `aarch64-linux`) |
+| `SSH_KEY` | ❌ | — | Public SSH key (e.g. `"ssh-ed25519 AAA..."`) |
+| `PART_SIZE` | ❌ | `full` | Partition size (e.g. `50GB`, `20%`, or `full`) |
 
 The finished ISO will appear in `./iso-output/`.
 
-> **Warning:** The installer wipes `TARGET_DISK` completely. Double-check the device name before booting.
+---
+
+## Examples
+
+### Secure Build (with SSH Key)
+Recommended for secure, passwordless access:
+```bash
+docker run --rm -v "$(pwd)/out:/out" ghcr.io/kiliansen/nixos-swarm-node:latest \
+  192.168.1.10 SWMTKN-1-abc-123 /dev/sda x86_64-linux "$(cat ~/.ssh/id_ed25519.pub)"
+```
+
+### Custom Disk Sizing
+To build an ISO that only uses 50GB of a larger disk (leaving the rest unallocated):
+```bash
+docker run --rm -v "$(pwd)/out:/out" ghcr.io/kiliansen/nixos-swarm-node:latest \
+  1.2.3.4 token_here /dev/sda x86_64-linux "" 50GB
+```
 
 ---
 
-## Using the pre-built image from GHCR
+## Error Handling & Debugging
 
-Every push to `main` automatically builds and publishes images to the GitHub Container Registry.
+If the installation process encounters an error, it will:
+1. Log the error to the console and system journal.
+2. Pause indefinitely (`sleep infinity`) to prevent an endless reboot loop.
+3. Allow you to inspect the system via the local console or SSH (if an SSH key was provided).
 
+To check logs manually on the live system:
 ```bash
-# x86_64
-docker pull ghcr.io/kiliansen/nixos-swarm-node:latest-amd64
-
-# aarch64
-docker pull ghcr.io/kiliansen/nixos-swarm-node:latest-arm64
+journalctl -u auto-install.service
 ```
-
-Versioned tags follow the pattern `YYYY.MM.DD-<run_number>` (e.g. `2026.02.22-5`).
 
 ---
 
 ## CI / CD — GitHub Actions
 
-The workflow at `.github/workflows/release.yml` runs on every push to `main`:
-
-```
-push → main
-  ├─ [tag]     Create & push a CalVer git tag (YYYY.MM.DD-<run_number>)
-  ├─ [build]   Build Docker images in parallel
-  │             ├─ x86_64-linux  → ghcr.io/…:TAG-amd64
-  │             └─ aarch64-linux → ghcr.io/…:TAG-arm64
-  └─ [release] Create a GitHub Release with pull instructions
-```
-
----
-
-## Project structure
-
-```
-.
-├── Dockerfile            # Builder image (nixos/nix base, configurable arch)
-├── build-iso.sh          # Entrypoint: injects args, calls nix-build
-├── unattended-iso.nix    # NixOS installer config template
-├── configuration.nix     # Base NixOS system configuration
-├── iso-output/           # Default local output directory (git-ignored)
-└── .github/
-    └── workflows/
-        └── release.yml   # Tag → Build → Release pipeline
-```
+The workflow at `.github/workflows/release.yml` builds and pushes the multi-arch image to GHCR on every push to `main`. It uses the `flake.nix` for consistent, pinned builds.
 
 ---
 
