@@ -1,7 +1,15 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, modulesPath, ... }:
 {
   imports = [
-    <nixpkgs/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix>
+    "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
+  ];
+
+  # Include the configuration file on the ISO itself so the installer can copy it
+  isoImage.contents = [
+    {
+      source = ./configuration.nix;
+      target = "/configuration.nix";
+    }
   ];
 
   # Allow root login via SSH (in addition to key-based if provided)

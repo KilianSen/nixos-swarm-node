@@ -9,8 +9,10 @@ LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.source="https://github.com/KilianSen/nixos-swarm-node/"
 
 # Required to enable Flakes and Nix-command at build-time and runtime
+# Also disable filter-syscalls to avoid seccomp errors in emulated (QEMU) builds
 RUN mkdir -p /etc/nix && \
-    echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf
+    echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf && \
+    echo "filter-syscalls = false" >> /etc/nix/nix.conf
 
 # Install gnused to ensure robust script execution
 RUN nix-env --option sandbox false -iA nixpkgs.gnused
