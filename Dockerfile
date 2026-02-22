@@ -1,5 +1,11 @@
 FROM nixos/nix:latest
 
+# OpenContainer labels
+LABEL org.opencontainers.image.title="NixOS Swarm Node ISO Builder"
+LABEL org.opencontainers.image.description="Docker image for building unattended NixOS ISO for Swarm nodes"
+LABEL org.opencontainers.image.version="1.0"
+LABEL org.opencontainers.image.authors="KilianSen"
+
 # Configurable target architecture for the NixOS ISO
 # Supported values: x86_64-linux, aarch64-linux
 ARG TARGET_ARCH=x86_64-linux
