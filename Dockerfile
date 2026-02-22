@@ -14,7 +14,7 @@ ARG TARGET_ARCH=x86_64-linux
 ENV TARGET_ARCH=${TARGET_ARCH}
 
 # Install sed so our build script can parse and modify the template
-RUN nix-env -iA nixpkgs.gnused
+RUN nix-env --option sandbox false -iA nixpkgs.gnused
 
 # Copy our template and build script into the container
 COPY config/unattended-iso.nix /unattended-iso.nix
