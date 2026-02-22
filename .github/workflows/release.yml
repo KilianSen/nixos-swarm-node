@@ -89,6 +89,15 @@ jobs:
           esac
           echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
 
+      - name: Set additional tags for x86
+        id: extra_tags
+        run: |
+          if [ "${{ matrix.target_arch }}" = "x86_64-linux" ]; then
+            echo "tags=${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "tags=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -99,6 +108,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ needs.tag.outputs.new_tag }}-${{ steps.arch.outputs.suffix }}
             ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:latest-${{ steps.arch.outputs.suffix }}
+            ${{ steps.extra_tags.outputs.tags }}
 
   # ──────────────────────────────────────────────
   # 3. Create a GitHub Release with useful notes
