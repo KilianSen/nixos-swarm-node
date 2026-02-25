@@ -33,7 +33,7 @@
     wants = [ "network-online.target" ];
     path = with pkgs; [ 
       parted e2fsprogs dosfstools nixos-install-tools utillinux bash coreutils 
-      jq curl kmod iproute2
+      jq curl kmod iproute2 nix perl
     ];
 
     script = ''
