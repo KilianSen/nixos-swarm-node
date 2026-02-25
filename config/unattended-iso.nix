@@ -107,13 +107,25 @@
       echo "    P1 (Boot): $P1"
       echo "    P2 (Root): $P2"
       
+      # Verify devices exist before formatting
+      if [ ! -b "$P1" ] || [ ! -b "$P2" ]; then
+        echo "!!! ERROR: Partition devices $P1 or $P2 not found !!!"
+        echo "Current block devices:"
+        lsblk
+        exit 1
+      fi
+
       mkfs.fat -F 32 -n boot "$P1"
       mkfs.ext4 -L nixos -F "$P2"
 
+      # Force udev to recognize new labels/UUIDs
+      udevadm trigger
+      udevadm settle
+
       echo "==> Mounting filesystems..."
-      mount /dev/disk/by-label/nixos /mnt
+      mount "$P2" /mnt
       mkdir -p /mnt/boot
-      mount /dev/disk/by-label/boot /mnt/boot
+      mount "$P1" /mnt/boot
 
       echo "==> Generating hardware configuration..."
       nixos-generate-config --root /mnt
