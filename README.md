@@ -1,16 +1,17 @@
 # NixOS Swarm Node — Unattended ISO Builder
 
-A Docker-based tool that builds a fully automated NixOS installer ISO for Docker Swarm worker nodes. Boot the ISO on any bare-metal machine and it will partition the disk, install NixOS, and join the Swarm — no human interaction required.
+A Docker-based tool that builds a fully automated NixOS installer ISO for Docker Swarm worker nodes. Boot the ISO on any bare-metal machine or VM, and it will partition the disk, install NixOS, and join the Swarm — no human interaction required.
 
 ---
 
 ## Features
 
 - **Modern Nix**: Powered by Nix Flakes and pinned to the stable `24.11` release.
-- **Truly Multi-arch**: Build `x86_64-linux` or `aarch64-linux` ISOs on any platform.
-- **Secure Access**: Inject your SSH public key during the build for immediate, secure access.
-- **Custom Partitioning**: Choose how much disk space to allocate for the NixOS partition.
-- **Robust Error Handling**: If installation fails, the installer pauses for manual debugging instead of rebooting into an empty system.
+- **Truly Multi-arch**: Build `x86_64-linux` or `aarch64-linux` ISOs.
+- **Secure Access**: Use SSH public keys or set an initial root password.
+- **Robust Partitioning**: Supports NVMe (`/dev/nvme0n1`), SCSI (`/dev/sda`), and VirtIO (`/dev/vda`).
+- **Debugging Tools**: The live ISO environment includes `docker`, `vim`, `git`, and `nix` for manual troubleshooting.
+- **Fail-Safe**: If installation fails, the installer pauses for manual debugging instead of rebooting into an empty system.
 
 ---
 
@@ -25,65 +26,71 @@ A Docker-based tool that builds a fully automated NixOS installer ISO for Docker
 
 ## Generating an ISO
 
-Pull the multi-arch pre-built image and run it with your Swarm credentials.
+Build the builder image locally, then run it using environment variables to configure your node.
 
 ```bash
+# 1. Build the builder
+docker build -t nixos-iso-builder .
+
+# 2. Generate the ISO
 docker run --rm \
-  -v "$(pwd)/iso-output:/out" \
-  ghcr.io/kiliansen/nixos-swarm-node:latest \
-  <MANAGER_IP> <SWARM_TOKEN> [TARGET_DISK] [ARCH] [SSH_KEY] [PART_SIZE]
+  -v "$(pwd)/out:/out" \
+  -v nix-cache:/nix \
+  -e MANAGER_IP="192.168.1.10" \
+  -e SWARM_TOKEN="SWMTKN-1-xxxx..." \
+  -e ROOT_PASSWORD="my-secret-password" \
+  nixos-iso-builder
 ```
 
-### Arguments
+### Configuration (Environment Variables)
 
-| Argument | Required | Default | Description |
+| Variable | Required | Default | Description |
 |---|---|---|---|
 | `MANAGER_IP` | ✅ | — | IP of the Docker Swarm manager |
-| `SWARM_TOKEN` | ✅ | — | Worker join token (`docker swarm join-token worker -q`) |
+| `SWARM_TOKEN` | ✅ | — | Worker join token |
+| `ROOT_PASSWORD` | ❌ | — | Initial password for the root user |
+| `SSH_KEY` | ❌ | — | Public SSH key (e.g. `"ssh-ed25519 AAA..."`) |
 | `TARGET_DISK` | ❌ | `/dev/sda` | Block device to install NixOS onto |
 | `ARCH` | ❌ | *host* | Target arch (`x86_64-linux` or `aarch64-linux`) |
-| `SSH_KEY` | ❌ | — | Public SSH key (e.g. `"ssh-ed25519 AAA..."`) |
-| `PART_SIZE` | ❌ | `full` | Partition size (e.g. `50GB`, `20%`, or `full`) |
+| `PARTITION_SIZE` | ❌ | `full` | Nix partition size (e.g. `50GB`, `20%`, or `full`) |
 
-The finished ISO will appear in `./iso-output/`.
+The finished ISO will appear in your local `./out/` directory.
 
 ---
 
-## Examples
+## Performance Tip: Use a Nix Cache
+Building a NixOS ISO involves downloading several GBs of data. To make subsequent builds take seconds instead of minutes, use a Docker volume to persist the Nix store:
 
-### Secure Build (with SSH Key)
-Recommended for secure, passwordless access:
 ```bash
-docker run --rm -v "$(pwd)/out:/out" ghcr.io/kiliansen/nixos-swarm-node:latest \
-  192.168.1.10 SWMTKN-1-abc-123 /dev/sda x86_64-linux "$(cat ~/.ssh/id_ed25519.pub)"
+docker volume create nix-cache
+docker run --rm -v "$(pwd)/out:/out" -v nix-cache:/nix ...
 ```
 
-### Custom Disk Sizing
-To build an ISO that only uses 50GB of a larger disk (leaving the rest unallocated):
-```bash
-docker run --rm -v "$(pwd)/out:/out" ghcr.io/kiliansen/nixos-swarm-node:latest \
-  1.2.3.4 token_here /dev/sda x86_64-linux "" 50GB
-```
+---
+
+## Proxmox Setup
+
+To ensure the automated installation and subsequent boots work correctly, use these VM settings:
+
+1.  **BIOS**: Must be **OVMF (UEFI)**. The default `systemd-boot` configuration requires UEFI.
+2.  **Machine**: Use `q35`.
+3.  **Disks**: Use **SCSI** for the best compatibility with the default `/dev/sda` target. 
+    *   If you use *VirtIO Block*, set `-e TARGET_DISK="/dev/vda"`.
+4.  **Network**: Ensure the bridge has access to your `MANAGER_IP`.
 
 ---
 
 ## Error Handling & Debugging
 
-If the installation process encounters an error, it will:
-1. Log the error to the console and system journal.
-2. Pause indefinitely (`sleep infinity`) to prevent an endless reboot loop.
-3. Allow you to inspect the system via the local console or SSH (if an SSH key was provided).
+If the installation process encounters an error (e.g., disk not found or network down), it will:
+1. Print a clear error message to the console.
+2. Pause indefinitely to allow you to investigate.
+3. Allow you to login via the Proxmox console (username `root`, no password).
 
-To check logs manually on the live system:
-```bash
-journalctl -u auto-install.service
-```
-
----
-
-## CI / CD — GitHub Actions
-
-The workflow at `.github/workflows/release.yml` builds and pushes the multi-arch image to GHCR on every push to `main`. It uses the `flake.nix` for consistent, pinned builds.
+**Useful commands in the live environment:**
+- `journalctl -u auto-install -f`: Watch the installation logs.
+- `lsblk`: See detected disks and partition names.
+- `docker ps`: Verify the Docker engine is running in the live environment.
 
 ---
 
