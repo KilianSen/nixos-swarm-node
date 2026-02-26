@@ -7,6 +7,8 @@
   virtualisation.docker.enable = true;
   networking.firewall.enable = true;
 
+  networking.hostName = "__HOSTNAME__";
+
   users.users.root.initialPassword = "__ROOT_PASSWORD__";
 
   networking.firewall.allowedTCPPorts = [ 2377 7946 ];

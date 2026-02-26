@@ -7,6 +7,8 @@
   # Include the configuration file in the live environment's /etc
   environment.etc."nixos-configuration-template.nix".source = ./configuration.nix;
 
+  networking.hostName = "__HOSTNAME__";
+
   # Include Docker and Nix in the ISO for debugging/manual use
   virtualisation.docker.enable = true;
   environment.systemPackages = with pkgs; [ docker nix git vim ];

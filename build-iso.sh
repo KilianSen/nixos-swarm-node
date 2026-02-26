@@ -9,6 +9,7 @@ ARCH="${ARCH:-$(nix-instantiate --eval -E 'builtins.currentSystem' | tr -d '"' 2
 SSH_KEY="${SSH_KEY}"
 PARTITION_SIZE="${PARTITION_SIZE:-full}"
 ROOT_PASSWORD="${ROOT_PASSWORD}"
+HOSTNAME="${HOSTNAME:-nixos}"
 
 if [ -z "$MANAGER_IP" ] || [ -z "$SWARM_TOKEN" ]; then
   echo "Error: Missing required environment variables."
@@ -22,6 +23,7 @@ if [ -z "$MANAGER_IP" ] || [ -z "$SWARM_TOKEN" ]; then
   echo "  SSH_KEY          (Optional) Public SSH key for root access"
   echo "  PARTITION_SIZE   (Default: full) Size for the Nix partition (e.g. 50GB, 20%)"
   echo "  ROOT_PASSWORD    (Optional) Initial root password for the installed system"
+  echo "  HOSTNAME         (Default: nixos) Hostname for the installed system"
   exit 1
 fi
 
@@ -53,6 +55,8 @@ sed -i "s|__TARGET_DISK__|$TARGET_DISK|g" $TEMP_CONFIG_DIR/unattended-iso.nix
 sed -i "s|__SSH_KEY__|$SSH_KEY|g" $TEMP_CONFIG_DIR/unattended-iso.nix
 sed -i "s|__PARTITION_SIZE__|$PARTITION_SIZE|g" $TEMP_CONFIG_DIR/unattended-iso.nix
 sed -i "s|__ROOT_PASSWORD__|$ROOT_PASSWORD|g" $TEMP_CONFIG_DIR/configuration.nix
+sed -i "s/__HOSTNAME__/$HOSTNAME/g" $TEMP_CONFIG_DIR/configuration.nix
+sed -i "s/__HOSTNAME__/$HOSTNAME/g" $TEMP_CONFIG_DIR/unattended-iso.nix
 
 # Fix path in flake.nix to point to local files in the temp dir
 sed -i 's|./config/unattended-iso.nix|./unattended-iso.nix|' $TEMP_CONFIG_DIR/flake.nix
