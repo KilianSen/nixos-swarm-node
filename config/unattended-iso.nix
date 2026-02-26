@@ -7,9 +7,9 @@
   # Include the configuration file in the live environment's /etc
   environment.etc."nixos-configuration-template.nix".source = ./configuration.nix;
 
-  # Include Docker in the ISO for debugging/manual use
+  # Include Docker and Nix in the ISO for debugging/manual use
   virtualisation.docker.enable = true;
-  environment.systemPackages = with pkgs; [ docker ];
+  environment.systemPackages = with pkgs; [ docker nix git vim ];
 
   # Allow root login via SSH (in addition to key-based if provided)
   services.openssh.enable = true;
@@ -33,11 +33,13 @@
     wants = [ "network-online.target" ];
     path = with pkgs; [ 
       parted e2fsprogs dosfstools nixos-install-tools utillinux bash coreutils 
-      jq curl kmod iproute2 nix perl
+      jq curl kmod iproute2 nix perl gnutar gzip xz config.nix.package
     ];
 
     script = ''
       set -e
+      # Ensure nix tools are definitely in the path
+      export PATH=$PATH:/run/current-system/sw/bin
 
       # Runtime variables (injected by build-iso.sh)
       TARGET_DISK="__TARGET_DISK__"
@@ -160,6 +162,7 @@
       Type = "oneshot";
       StandardOutput = "journal+console";
       StandardError = "journal+console";
+      Environment = [ "NIX_PATH=nixpkgs=${pkgs.path}" ];
     };
   };
 }
