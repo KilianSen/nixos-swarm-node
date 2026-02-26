@@ -13,7 +13,8 @@
 
   # Allow root login via SSH (in addition to key-based if provided)
   services.openssh.enable = true;
-  services.openssh.settings.PermitRootLogin = lib.mkForce "prohibit-password";
+  services.openssh.settings.PermitRootLogin = lib.mkForce (if "__SSH_KEY__" == "" then "yes" else "prohibit-password");
+  services.openssh.settings.PasswordAuthentication = lib.mkForce true;
 
   # SSH Key Injection
   users.users.root.openssh.authorizedKeys.keys = lib.mkIf ("__SSH_KEY__" != "") [

@@ -1,24 +1,27 @@
 #!/bin/sh
 set -e
 
-MANAGER_IP=$1
-SWARM_TOKEN=$2
-TARGET_DISK=${3:-/dev/sda}
-ARCH=${4:-$(nix-instantiate --eval -E 'builtins.currentSystem' | tr -d '"' 2>/dev/null || echo "x86_64-linux")}
-SSH_KEY=$5
-PARTITION_SIZE=${6:-full}
-ROOT_PASSWORD=$7
+# Configuration via environment variables with defaults
+MANAGER_IP="''${MANAGER_IP}"
+SWARM_TOKEN="''${SWARM_TOKEN}"
+TARGET_DISK="''${TARGET_DISK:-/dev/sda}"
+ARCH="''${ARCH:-$(nix-instantiate --eval -E 'builtins.currentSystem' | tr -d '"' 2>/dev/null || echo "x86_64-linux")}"
+SSH_KEY="''${SSH_KEY}"
+PARTITION_SIZE="''${PARTITION_SIZE:-full}"
+ROOT_PASSWORD="''${ROOT_PASSWORD}"
 
 if [ -z "$MANAGER_IP" ] || [ -z "$SWARM_TOKEN" ]; then
-  echo "Error: Missing arguments."
-  echo "Usage: docker run ... <MANAGER_IP> <SWARM_TOKEN> [TARGET_DISK] [ARCH] [SSH_KEY] [PARTITION_SIZE] [ROOT_PASSWORD]"
+  echo "Error: Missing required environment variables."
+  echo "Usage: docker run -e MANAGER_IP=... -e SWARM_TOKEN=... [OPTIONS] ..."
   echo ""
-  echo "Options:"
-  echo "  TARGET_DISK: Block device for installation (default: /dev/sda)"
-  echo "  ARCH: x86_64-linux or aarch64-linux (default: host arch)"
-  echo "  SSH_KEY: Public SSH key for root access (e.g. \"ssh-ed25519 ...\")"
-  echo "  PARTITION_SIZE: Size for the Nix partition (default: full (100%), or e.g. 50GB, 20%)"
-  echo "  ROOT_PASSWORD: Initial password for the root user on the installed system"
+  echo "Options (Environment Variables):"
+  echo "  MANAGER_IP       (Required) IP of the Swarm Manager"
+  echo "  SWARM_TOKEN      (Required) Docker Swarm Join Token"
+  echo "  TARGET_DISK      (Default: /dev/sda) Block device for installation"
+  echo "  ARCH             (Default: host arch) x86_64-linux or aarch64-linux"
+  echo "  SSH_KEY          (Optional) Public SSH key for root access"
+  echo "  PARTITION_SIZE   (Default: full) Size for the Nix partition (e.g. 50GB, 20%)"
+  echo "  ROOT_PASSWORD    (Optional) Initial root password for the installed system"
   exit 1
 fi
 
