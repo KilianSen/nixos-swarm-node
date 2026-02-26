@@ -2,13 +2,13 @@
 set -e
 
 # Configuration via environment variables with defaults
-MANAGER_IP="''${MANAGER_IP}"
-SWARM_TOKEN="''${SWARM_TOKEN}"
-TARGET_DISK="''${TARGET_DISK:-/dev/sda}"
-ARCH="''${ARCH:-$(nix-instantiate --eval -E 'builtins.currentSystem' | tr -d '"' 2>/dev/null || echo "x86_64-linux")}"
-SSH_KEY="''${SSH_KEY}"
-PARTITION_SIZE="''${PARTITION_SIZE:-full}"
-ROOT_PASSWORD="''${ROOT_PASSWORD}"
+MANAGER_IP="${MANAGER_IP}"
+SWARM_TOKEN="${SWARM_TOKEN}"
+TARGET_DISK="${TARGET_DISK:-/dev/sda}"
+ARCH="${ARCH:-$(nix-instantiate --eval -E 'builtins.currentSystem' | tr -d '"' 2>/dev/null || echo "x86_64-linux")}"
+SSH_KEY="${SSH_KEY}"
+PARTITION_SIZE="${PARTITION_SIZE:-full}"
+ROOT_PASSWORD="${ROOT_PASSWORD}"
 
 if [ -z "$MANAGER_IP" ] || [ -z "$SWARM_TOKEN" ]; then
   echo "Error: Missing required environment variables."
