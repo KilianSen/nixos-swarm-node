@@ -7,16 +7,18 @@ TARGET_DISK=${3:-/dev/sda}
 ARCH=${4:-$(nix-instantiate --eval -E 'builtins.currentSystem' | tr -d '"' 2>/dev/null || echo "x86_64-linux")}
 SSH_KEY=$5
 PARTITION_SIZE=${6:-full}
+ROOT_PASSWORD=$7
 
 if [ -z "$MANAGER_IP" ] || [ -z "$SWARM_TOKEN" ]; then
   echo "Error: Missing arguments."
-  echo "Usage: docker run ... <MANAGER_IP> <SWARM_TOKEN> [TARGET_DISK] [ARCH] [SSH_KEY] [PARTITION_SIZE]"
+  echo "Usage: docker run ... <MANAGER_IP> <SWARM_TOKEN> [TARGET_DISK] [ARCH] [SSH_KEY] [PARTITION_SIZE] [ROOT_PASSWORD]"
   echo ""
   echo "Options:"
   echo "  TARGET_DISK: Block device for installation (default: /dev/sda)"
   echo "  ARCH: x86_64-linux or aarch64-linux (default: host arch)"
   echo "  SSH_KEY: Public SSH key for root access (e.g. \"ssh-ed25519 ...\")"
   echo "  PARTITION_SIZE: Size for the Nix partition (default: full (100%), or e.g. 50GB, 20%)"
+  echo "  ROOT_PASSWORD: Initial password for the root user on the installed system"
   exit 1
 fi
 
@@ -47,6 +49,7 @@ sed -i "s/__SWARM_TOKEN__/$SWARM_TOKEN/g" $TEMP_CONFIG_DIR/unattended-iso.nix
 sed -i "s|__TARGET_DISK__|$TARGET_DISK|g" $TEMP_CONFIG_DIR/unattended-iso.nix
 sed -i "s|__SSH_KEY__|$SSH_KEY|g" $TEMP_CONFIG_DIR/unattended-iso.nix
 sed -i "s|__PARTITION_SIZE__|$PARTITION_SIZE|g" $TEMP_CONFIG_DIR/unattended-iso.nix
+sed -i "s|__ROOT_PASSWORD__|$ROOT_PASSWORD|g" $TEMP_CONFIG_DIR/configuration.nix
 
 # Fix path in flake.nix to point to local files in the temp dir
 sed -i 's|./config/unattended-iso.nix|./unattended-iso.nix|' $TEMP_CONFIG_DIR/flake.nix

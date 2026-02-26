@@ -6,6 +6,9 @@
   services.openssh.enable = true;
   virtualisation.docker.enable = true;
   networking.firewall.enable = true;
+
+  users.users.root.initialPassword = "__ROOT_PASSWORD__";
+
   networking.firewall.allowedTCPPorts = [ 2377 7946 ];
   networking.firewall.allowedUDPPorts = [ 7946 4789 ];
 
