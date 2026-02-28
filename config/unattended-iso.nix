@@ -9,6 +9,8 @@
 
   networking.hostName = "__HOSTNAME__";
 
+  boot.supportedFilesystems = [ "nfs" "cifs" ];
+
   # Include Docker and Nix in the ISO for debugging/manual use
   virtualisation.docker.enable = true;
   environment.systemPackages = with pkgs; [ 
@@ -18,10 +20,13 @@
     vim 
     cifs-utils 
     nfs-utils 
+    keyutils
   ];
 
   # Allow root login via SSH (in addition to key-based if provided)
   services.openssh.enable = true;
+  services.rpcbind.enable = true;
+  services.nfs.idmapd.enable = true;
   services.openssh.settings.PermitRootLogin = lib.mkForce (if "__SSH_KEY__" == "" then "yes" else "prohibit-password");
   services.openssh.settings.PasswordAuthentication = lib.mkForce true;
 

@@ -3,12 +3,17 @@
   imports = [ ./hardware-configuration.nix ];
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.supportedFilesystems = [ "nfs" "cifs" ];
+
   services.openssh.enable = true;
+  services.rpcbind.enable = true;
+  services.nfs.idmapd.enable = true;
   virtualisation.docker.enable = true;
 
   environment.systemPackages = with pkgs; [
     cifs-utils
     nfs-utils
+    keyutils
   ];
 
   networking.firewall.enable = true;
