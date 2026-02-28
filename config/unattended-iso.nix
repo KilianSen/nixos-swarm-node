@@ -11,7 +11,14 @@
 
   # Include Docker and Nix in the ISO for debugging/manual use
   virtualisation.docker.enable = true;
-  environment.systemPackages = with pkgs; [ docker nix git vim ];
+  environment.systemPackages = with pkgs; [ 
+    docker 
+    nix 
+    git 
+    vim 
+    cifs-utils 
+    nfs-utils 
+  ];
 
   # Allow root login via SSH (in addition to key-based if provided)
   services.openssh.enable = true;

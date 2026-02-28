@@ -5,6 +5,12 @@
   boot.loader.efi.canTouchEfiVariables = true;
   services.openssh.enable = true;
   virtualisation.docker.enable = true;
+
+  environment.systemPackages = with pkgs; [
+    cifs-utils
+    nfs-utils
+  ];
+
   networking.firewall.enable = true;
 
   networking.hostName = "__HOSTNAME__";
