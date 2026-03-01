@@ -15,7 +15,7 @@
     keyutils
   ];
 
-  networking.firewall.enable = true;
+  networking.firewall.enable = false;
 
   networking.hostName = "__HOSTNAME__";
 
