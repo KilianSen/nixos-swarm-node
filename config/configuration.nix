@@ -7,7 +7,6 @@
 
   services.openssh.enable = true;
   services.rpcbind.enable = true;
-  services.nfs.idmapd.enable = true;
   virtualisation.docker.enable = true;
 
   environment.systemPackages = with pkgs; [

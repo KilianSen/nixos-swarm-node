@@ -26,7 +26,6 @@
   # Allow root login via SSH (in addition to key-based if provided)
   services.openssh.enable = true;
   services.rpcbind.enable = true;
-  services.nfs.idmapd.enable = true;
   services.openssh.settings.PermitRootLogin = lib.mkForce (if "__SSH_KEY__" == "" then "yes" else "prohibit-password");
   services.openssh.settings.PasswordAuthentication = lib.mkForce true;
 
